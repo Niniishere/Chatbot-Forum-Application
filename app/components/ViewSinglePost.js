@@ -33,7 +33,8 @@ function ViewSinglePost() {
     return () => {
       ourRequest.cancel();
     };
-  }, []);
+  }, [id]);
+  //everytime id changes, the function is called
 
   if (!isLoading && !post) {
     return <NotFound />;
