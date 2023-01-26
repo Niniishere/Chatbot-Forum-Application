@@ -23,6 +23,7 @@ import Profile from "./components/Profile";
 import EditPost from "./components/EditPost";
 import NotFound from "./components/NotFound";
 import Search from "./components/Search";
+import Chat from "./components/Chat";
 
 function Main() {
   const initialState = {
@@ -33,7 +34,9 @@ function Main() {
       username: localStorage.getItem("complexappUsername"),
       avatar: localStorage.getItem("complexappAvatar")
     },
-    isSearchOpen: false
+    isSearchOpen: false,
+    isChatOpen: false,
+    unreadChatCount: 0
   };
   function ourReducer(draft, action) {
     switch (action.type) {
@@ -53,6 +56,18 @@ function Main() {
       case "closeSearch":
         draft.isSearchOpen = false;
         return;
+      case "toggleChat":
+        draft.isChatOpen = !draft.isChatOpen;
+        return;
+      case "closeChat":
+        draft.isChatOpen = false;
+        return;
+      case "incrementUnreadChatCount":
+        draft.unreadChatCount++;
+        return;
+      case "clearUnreadChatCount":
+        draft.unreadChatCount = 0;
+        return;
     }
   }
 
@@ -69,6 +84,27 @@ function Main() {
       localStorage.removeItem("complexappAvatar");
     }
   }, [state.loggedIn]);
+
+  //check if token has expired or not on first render
+  useEffect(() => {
+    if (state.loggedIn) {
+      //send axios request here
+      const ourRequest = Axios.CancelToken.source();
+      async function fetchResults() {
+        try {
+          const response = await Axios.post("/checkToken", { token: state.user.token }, { cancelToken: ourRequest.token });
+          if (!response.data) {
+            dispatch({ type: "logout" });
+            dispatch({ type: "flashMessage", value: "Your session has expired. Please log in again." });
+          }
+        } catch (e) {
+          console.log("There was a problem or the request was cancelled.");
+        }
+      }
+      fetchResults();
+      return () => ourRequest.cancel;
+    }
+  }, []);
 
   return (
     //allows every child nested in the examplecontext component access to value
@@ -90,6 +126,7 @@ function Main() {
           <CSSTransition timeout={330} in={state.isSearchOpen} classNames="search-overlay" unmountOnExit>
             <Search />
           </CSSTransition>
+          <Chat />
           <Footer />
         </BrowserRouter>
       </DispatchContext.Provider>
